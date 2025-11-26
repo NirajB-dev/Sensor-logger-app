@@ -1,0 +1,115 @@
+SENSOR DATA LOGGING APP - QUICK START GUIDE
+=============================================
+
+WHAT THIS APP DOES:
+-------------------
+- Records GPS location data (latitude, longitude, altitude, speed, direction)
+- Records magnetometer data (EMF readings from phone's magnetic sensor)
+- Shows live data on screen with charts
+- Saves data to Firebase cloud database
+- Exports data as CSV file
+- Perfect for mapping EMF hotspots and analyzing electromagnetic fields
+
+HOW TO RUN:
+-----------
+
+OPTION 1 - INSTALL APK (EASIEST):
+1. Copy "sensor_data_logging_app.apk" to your Android phone
+2. Enable "Install from Unknown Sources" in phone settings
+3. Tap the APK file to install
+4. Open the app and grant location permissions
+5. Tap "Start Recording" to begin data collection
+
+OPTION 2 - RUN FROM SOURCE CODE:
+1. Install Flutter SDK:
+   - Download from https://flutter.dev/docs/get-started/install
+   - Add Flutter to your PATH
+   - Run: flutter doctor (to check setup)
+
+2. Setup Android Development:
+   - Install Android Studio
+   - Enable USB debugging on your Android phone
+   - Connect phone via USB cable
+   - Run: flutter devices (to see connected devices)
+
+3. Run the App:
+   - Open terminal/command prompt
+   - Navigate to project folder
+   - Run: cd flutter_app
+   - Run: flutter pub get (install dependencies)
+   - Run: flutter run (builds and installs app on phone)
+
+4. Alternative Commands:
+   - flutter run -d [device_id] (run on specific device)
+   - flutter build apk (create APK file)
+   - flutter clean (clean build cache)
+
+HOW TO USE:
+-----------
+1. Open the app
+2. Grant location permissions when prompted
+3. Tap "Start Recording" - app will collect GPS and magnetometer data
+4. Walk around to collect data points
+5. Tap "Stop Recording" when done
+6. Tap "View Charts" to see data visualizations
+7. Tap "Export CSV" to save data to phone
+8. Data is automatically saved to Firebase cloud
+
+WHAT YOU GET:
+-------------
+- Live GPS coordinates on screen
+- Live magnetometer readings (EMF data)
+- Interactive charts showing data over time
+- CSV file with all collected data
+- Cloud storage in Firebase for analysis
+
+TECHNICAL STUFF:
+----------------
+- Built with Flutter (Dart)
+- Uses phone's GPS and magnetometer sensors
+- Charts made with Syncfusion
+- Cloud storage with Firebase
+- Exports data as CSV files
+
+PERFECT FOR:
+------------
+- Mapping electromagnetic field hotspots
+- Analyzing EMF exposure patterns
+- Research on electromagnetic radiation
+- Urban computing assignments
+- Environmental monitoring
+
+TROUBLESHOOTING:
+----------------
+- Make sure location permissions are granted
+- Ensure phone has GPS enabled
+- Check internet connection for Firebase
+- Restart app if sensors don't work
+
+RUNNING COMMANDS REFERENCE:
+---------------------------
+# Check Flutter setup
+flutter doctor
+
+# See connected devices
+flutter devices
+
+# Install dependencies
+flutter pub get
+
+# Run app on connected device
+flutter run
+
+# Run on specific device
+flutter run -d [device_id]
+
+# Build release APK
+flutter build apk --release
+
+# Clean build cache
+flutter clean
+
+# Check for updates
+flutter upgrade
+
+That's it! Simple sensor data collection app for EMF research.
