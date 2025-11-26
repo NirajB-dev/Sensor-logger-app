@@ -11,6 +11,7 @@ web_dashboard/node_modules/
 web_dashboard/dist/
 web_dashboard/.env
 web_dashboard/.env.local
+web_dashboard/venv/
 
 # Firebase
 firebase_database.rules.json
