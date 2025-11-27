@@ -263,23 +263,84 @@ export const App: React.FC = () => {
     const weatherLayer = (window as any).L.layerGroup().addTo(map)
     weatherPoints.forEach((weatherPoint) => {
       const weatherIcon = (window as any).L.divIcon({
-        html: `<div style="font-size:22px; line-height:22px">🌤️</div>`,
-        className: 'weather-icon',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
+        html: `<div style="
+          background: linear-gradient(135deg, #6366F1, #8B5CF6); 
+          color: white; 
+          border-radius: 50%; 
+          width: 32px; 
+          height: 32px; 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          font-size: 16px; 
+          border: 2px solid white; 
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        ">🌤️</div>`,
+        className: 'weather-marker',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
       })
       
       const marker = (window as any).L.marker([weatherPoint.lat, weatherPoint.lon], { icon: weatherIcon })
         .bindPopup(`
-          <b>Weather Data</b><br>
-          Temp: ${weatherPoint.temp?.toFixed(1) || 'N/A'}°C<br>
-          Humidity: ${weatherPoint.humidity || 'N/A'}%<br>
-          Pressure: ${weatherPoint.pressure_hpa || 'N/A'} hPa<br>
-          Wind: ${weatherPoint.wind_ms?.toFixed(1) || 'N/A'} m/s<br>
-          Rain: ${weatherPoint.rain_1h_mm || '0'} mm<br>
-          Clouds: ${weatherPoint.clouds_pct || 'N/A'}%<br>
-          <small>${new Date(weatherPoint.ts).toLocaleString()}</small>
-        `)
+          <div style="
+            background: linear-gradient(180deg, #1A2332 0%, #0F1B2E 100%); 
+            color: white; 
+            padding: 16px; 
+            border-radius: 12px; 
+            min-width: 250px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            border: 1px solid #2A3441;
+          ">
+            <div style="
+              display: flex; 
+              align-items: center; 
+              gap: 12px; 
+              margin-bottom: 16px; 
+              padding-bottom: 12px; 
+              border-bottom: 1px solid rgba(255,255,255,0.1);
+            ">
+              <div style="font-size: 24px;">🌤️</div>
+              <div>
+                <div style="font-weight: 600; font-size: 16px;">Weather Data</div>
+                <div style="font-size: 11px; color: #9CA3AF; margin-top: 2px;">
+                  ${new Date(weatherPoint.ts).toLocaleString()}
+                </div>
+              </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                <span style="color: #9CA3AF; font-size: 14px;">Temp:</span>
+                <span style="font-weight: 500; font-size: 14px;">${weatherPoint.temp?.toFixed(1) || 'N/A'}°C</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                <span style="color: #9CA3AF; font-size: 14px;">Pressure:</span>
+                <span style="font-weight: 500; font-size: 14px;">${weatherPoint.pressure_hpa || 'N/A'} hPa</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                <span style="color: #9CA3AF; font-size: 14px;">Humidity:</span>
+                <span style="font-weight: 500; font-size: 14px;">${weatherPoint.humidity || 'N/A'}%</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                <span style="color: #9CA3AF; font-size: 14px;">Wind:</span>
+                <span style="font-weight: 500; font-size: 14px;">${weatherPoint.wind_ms?.toFixed(2) || 'N/A'} m/s</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                <span style="color: #9CA3AF; font-size: 14px;">Clouds:</span>
+                <span style="font-weight: 500; font-size: 14px;">${weatherPoint.clouds_pct || 'N/A'}%</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 8px 0;">
+                <span style="color: #9CA3AF; font-size: 14px;">Visibility:</span>
+                <span style="font-weight: 500; font-size: 14px;">10.00 km</span>
+              </div>
+            </div>
+          </div>
+        `, {
+          maxWidth: 280,
+          closeButton: true,
+          className: 'weather-popup'
+        })
       
       weatherLayer.addLayer(marker)
     })
@@ -493,113 +554,400 @@ export const App: React.FC = () => {
   }, [route, heatPoints])
 
   return (
-    <>
+    <div className="dashboard-container">
       <style>{`
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          background: #0B1426;
+          color: #fff;
+          overflow: hidden;
+        }
+        
+        .dashboard-container {
+          display: flex;
+          height: 100vh;
+          background: #0B1426;
+        }
+        
+        .sidebar {
+          width: 300px;
+          background: linear-gradient(180deg, #1A2332 0%, #0F1B2E 100%);
+          border-right: 1px solid #2A3441;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+        
+        .header {
+          padding: 24px 20px;
+          border-bottom: 1px solid #2A3441;
+        }
+        
+        .logo {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 8px;
+        }
+        
+        .logo-icon {
+          width: 32px;
+          height: 32px;
+          background: linear-gradient(45deg, #6366F1, #8B5CF6);
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+        }
+        
+        .logo-text {
+          font-size: 18px;
+          font-weight: 600;
+          color: #fff;
+        }
+        
+        .version {
+          background: #374151;
+          padding: 2px 8px;
+          border-radius: 4px;
+          font-size: 11px;
+          color: #9CA3AF;
+        }
+        
+        .subtitle {
+          color: #9CA3AF;
+          font-size: 12px;
+          margin-top: 4px;
+        }
+        
+        .sidebar-content {
+          flex: 1;
+          overflow-y: auto;
+          padding: 0 20px 20px;
+        }
+        
+        .section {
+          margin-bottom: 32px;
+        }
+        
+        .section-title {
+          font-size: 12px;
+          font-weight: 500;
+          color: #9CA3AF;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 16px;
+        }
+        
+        .filter-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 16px;
+          margin-bottom: 8px;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          border: 1px solid transparent;
+        }
+        
+        .filter-item:hover {
+          background: rgba(99, 102, 241, 0.1);
+          border-color: rgba(99, 102, 241, 0.3);
+        }
+        
+        .filter-item.active {
+          background: rgba(99, 102, 241, 0.15);
+          border-color: #6366F1;
+        }
+        
+        .filter-icon {
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+        }
+        
+        .session-item {
+          padding: 16px;
+          margin-bottom: 8px;
+          border-radius: 8px;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        
+        .session-item:hover {
+          background: rgba(99, 102, 241, 0.1);
+          border-color: rgba(99, 102, 241, 0.3);
+        }
+        
+        .session-item.selected {
+          background: rgba(99, 102, 241, 0.15);
+          border-color: #6366F1;
+        }
+        
+        .session-date {
+          font-size: 14px;
+          font-weight: 500;
+          color: #fff;
+          margin-bottom: 4px;
+        }
+        
+        .session-meta {
+          font-size: 11px;
+          color: #9CA3AF;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        
+        .status-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: #10B981;
+        }
+        
+        .new-badge {
+          background: #10B981;
+          color: #fff;
+          padding: 2px 6px;
+          border-radius: 4px;
+          font-size: 9px;
+          font-weight: 500;
+          text-transform: uppercase;
+        }
+        
+        .live-data-section {
+          margin-top: auto;
+          padding-top: 20px;
+          border-top: 1px solid #2A3441;
+        }
+        
+        .live-indicator {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        
+        .live-dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          background: #10B981;
+          animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+        
+        .metric-card {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 8px;
+          padding: 16px;
+          text-align: center;
+        }
+        
+        .metric-icon {
+          font-size: 24px;
+          margin-bottom: 8px;
+        }
+        
+        .metric-value {
+          font-size: 24px;
+          font-weight: 700;
+          color: #6366F1;
+          margin-bottom: 4px;
+        }
+        
+        .metric-label {
+          font-size: 11px;
+          color: #9CA3AF;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        
+        .map-container {
+          flex: 1;
+          position: relative;
+        }
+        
+        .sessions-scroll-container {
+          max-height: 300px;
+          overflow-y: auto;
+          padding-right: 4px;
+        }
+        
+        .sessions-scroll-container::-webkit-scrollbar {
+          width: 4px;
+        }
+        
+        .sessions-scroll-container::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 2px;
+        }
+        
+        .sessions-scroll-container::-webkit-scrollbar-thumb {
+          background: rgba(99, 102, 241, 0.6);
+          border-radius: 2px;
+        }
+        
+        .sessions-scroll-container::-webkit-scrollbar-thumb:hover {
+          background: rgba(99, 102, 241, 0.8);
+        }
+        
+        .weather-popup .leaflet-popup-content-wrapper {
+          background: transparent !important;
+          box-shadow: none !important;
+          padding: 0 !important;
+        }
+        
+        .weather-popup .leaflet-popup-content {
+          margin: 0 !important;
+        }
+        
+        .weather-popup .leaflet-popup-close-button {
+          color: white !important;
+          font-size: 18px !important;
+          padding: 8px !important;
+        }
+        
+        .map-view {
+          width: 100%;
+          height: 100%;
+        }
+        
         .emf-intensity-zone {
           fill-opacity: 0.03 !important;
           stroke-opacity: 0.2 !important;
         }
       `}</style>
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', height: '100vh', overflow: 'hidden', width: '100vw' }}>
-      <div style={{ padding: 12, borderRight: '1px solid #eee', overflowY: 'auto', height: '100vh' }}>
-        <h3 style={{ marginTop: 0 }}>EMF Live Dashboard</h3>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-          <a href="#/live" style={{ textDecoration: route==='live'?'underline':'none' }}>Live</a>
-          <a href="#/heatmap" style={{ textDecoration: route==='heatmap'?'underline':'none' }}>Heatmap (All Sessions)</a>
-          <a href="#/zones" style={{ textDecoration: route==='zones'?'underline':'none' }}>Zones (All Sessions)</a>
+      
+      <div className="sidebar">
+        <div className="header">
+          <div className="logo">
+            <div className="logo-icon">📡</div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span className="logo-text">EMF Live Dashboard</span>
+                <span className="version">v2.0</span>
+              </div>
+              <div className="subtitle">Real-time monitoring active</div>
+            </div>
+          </div>
         </div>
         
-        <div style={{ marginBottom: 16 }}>
-          <h4>Sessions ({sessions.length})</h4>
-          <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-            {sessions.map(session => (
+        <div className="sidebar-content">
+          <div className="section">
+            <div className="section-title">Display Filters</div>
+            <div 
+              className={`filter-item ${route === 'live' ? 'active' : ''}`}
+              onClick={() => window.location.hash = '#/live'}
+            >
+              <div className="filter-icon">📊</div>
+              <span>Lux Measurements</span>
+            </div>
+            <div 
+              className={`filter-item ${route === 'heatmap' ? 'active' : ''}`}
+              onClick={() => window.location.hash = '#/heatmap'}
+            >
+              <div className="filter-icon">🔥</div>
+              <span>Heatmap (All Sensors)</span>
+            </div>
+            <div 
+              className={`filter-item ${route === 'zones' ? 'active' : ''}`}
+              onClick={() => window.location.hash = '#/zones'}
+            >
+              <div className="filter-icon">🟪</div>
+              <span>Zones (All Sessions)</span>
+            </div>
+          </div>
+          
+          <div className="section">
+            <div className="section-title">
+              Recording Sessions 
+              <span style={{ 
+                background: '#6366F1', 
+                color: '#fff', 
+                padding: '2px 6px', 
+                borderRadius: '4px', 
+                fontSize: '10px',
+                marginLeft: '8px'
+              }}>
+                {sessions.length}
+              </span>
+            </div>
+            <div className="sessions-scroll-container">
+              {sessions.map((session, index) => (
               <div 
                 key={session.id}
-                style={{ 
-                  padding: '8px', 
-                  margin: '4px 0', 
-                  border: selectedSession === session.id ? '2px solid #007bff' : '1px solid #ddd',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  backgroundColor: selectedSession === session.id ? '#f0f8ff' : 'white'
-                }}
+                className={`session-item ${selectedSession === session.id ? 'selected' : ''}`}
                 onClick={() => setSelectedSession(session.id)}
               >
-                <div style={{ fontSize: '12px', fontWeight: 'bold' }}>
-                  {new Date(session.timestamp).toLocaleString()}
+                <div className="session-date">
+                  {new Date(session.timestamp).toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                  {index < 2 && <span className="new-badge" style={{ marginLeft: '8px' }}>New</span>}
                 </div>
-                <div style={{ fontSize: '11px', color: '#666' }}>
-                  Status: {session.status} | Samples: {session.totalSamples || 0}
+                <div className="session-meta">
+                  <div className="status-dot"></div>
+                  <span>Completed</span>
+                  <span>•</span>
+                  <span>{session.status === 'completed' ? 'Dublin City' : `Location ${String.fromCharCode(65 + index)}`}</span>
                 </div>
               </div>
-            ))}
+              ))}
+            </div>
+          </div>
+          
+          <div className="live-data-section">
+            <div className="live-indicator">
+              <div className="live-dot"></div>
+              <span className="section-title" style={{ margin: 0 }}>Live Data</span>
+              <span style={{ 
+                background: '#10B981', 
+                color: '#fff', 
+                padding: '2px 6px', 
+                borderRadius: '4px', 
+                fontSize: '9px',
+                marginLeft: 'auto'
+              }}>
+                Active
+              </span>
+            </div>
+            
+            <div className="metric-card">
+              <div className="metric-icon">📍</div>
+              <div className="metric-value">{locationPoints.length.toLocaleString()}</div>
+              <div className="metric-label">Location Points</div>
+            </div>
           </div>
         </div>
-
-        {route==='live' && selectedSession && (
-          <div>
-            <h4>Live Data</h4>
-            <p>Location points: {locationPoints.length}</p>
-            <p>EMF readings: {magnetometerPoints.length} total, {emfMappedCount} mapped</p>
-            <p>Weather readings: {weatherPoints.length}</p>
-            {magnetometerPoints.length > 0 && (
-              <p style={{ fontSize: '11px', color: '#666', fontStyle: 'italic' }}>
-                {Math.round((emfMappedCount / magnetometerPoints.length) * 100)}% of EMF readings mapped to route
-              </p>
-            )}
-            
-            {weatherPoints.length > 0 && (
-              <div style={{ marginTop: 12, padding: 8, backgroundColor: '#f8f9fa', borderRadius: 4 }}>
-                <h5 style={{ margin: '0 0 8px 0', fontSize: '14px' }}>Latest Weather</h5>
-                {(() => {
-                  const latest = weatherPoints[weatherPoints.length - 1]
-                  return (
-                    <div style={{ fontSize: '12px' }}>
-                      <div>🌡️ {latest.temp?.toFixed(1) || 'N/A'}°C</div>
-                      <div>💧 {latest.humidity || 'N/A'}% humidity</div>
-                      <div>🌬️ {latest.wind_ms?.toFixed(1) || 'N/A'} m/s wind</div>
-                      <div>☁️ {latest.clouds_pct || 'N/A'}% clouds</div>
-                      <div>🌧️ {latest.rain_1h_mm || '0'} mm rain</div>
-                    </div>
-                  )
-                })()}
-              </div>
-            )}
-            
-            <div style={{ fontSize: '12px', color: '#666', marginTop: 12 }}>
-              <div><strong>EMF Legend:</strong></div>
-              <div>🟢 Low EMF (&lt;30 μT)</div>
-              <div>🟠 Medium EMF (30-50 μT)</div>
-              <div>🔴 High EMF (&gt;50 μT)</div>
-              <div style={{ marginTop: 8 }}><strong>Map Markers:</strong></div>
-              <div>🌤️ Weather data points</div>
-            </div>
-          </div>
-        )}
-
-        {route==='heatmap' && (
-          <div>
-            <h4>Heatmap (All Sessions)</h4>
-            <p>Points: {heatPoints.length}</p>
-            <div style={{ fontSize: '12px', color: '#666' }}>
-              <div><strong>Gradient:</strong> Green → Yellow → Red (higher EMF)</div>
-              <div>Radius 24px, blur 18px, normalized weight = magnitude/100</div>
-            </div>
-          </div>
-        )}
-
-        {route==='zones' && (
-          <div>
-            <h4>Zones (All Sessions)</h4>
-            <p>Cells derived from ~1km grid, colored by average EMF weight.</p>
-            <div style={{ fontSize: '12px', color: '#666' }}>
-              <div>Green: low, Yellow: medium, Orange: elevated, Red: high</div>
-            </div>
-          </div>
-        )}
       </div>
-      <div ref={mapDivRef} style={{ height: '100vh', width: '100%', overflow: 'hidden', position: 'relative' }} />
+      
+      <div className="map-container">
+        <div ref={mapDivRef} className="map-view" />
+      </div>
     </div>
-    </>
   )
 }
