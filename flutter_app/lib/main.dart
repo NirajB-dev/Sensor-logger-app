@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -9,6 +10,12 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
 import 'google_fit_service.dart';
+import 'widgets/custom_app_bar.dart';
+import 'widgets/google_fit_card.dart';
+import 'widgets/status_card.dart';
+import 'widgets/sensor_data_card.dart';
+import 'widgets/recording_button.dart';
+import 'widgets/recording_stats_card.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,10 +28,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Google Fit + EMF Logger',
+      title: 'EMF Sensor Logger',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.red),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6366F1)),
         useMaterial3: true,
+        fontFamily: 'SF Pro Display',
+        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
       ),
       home: const MyHomePage(),
       debugShowCheckedModeBanner: false,
@@ -381,206 +390,70 @@ class _MyHomePageState extends State<MyHomePage> {
 
 
 
+  Duration? get _recordingDuration {
+    if (!_isRecording || _startTime == null) return null;
+    return DateTime.now().difference(_startTime!);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('🩺 GOOGLE FIT + EMF TRACKER'),
-        backgroundColor: Colors.red.shade500,
-        foregroundColor: Colors.white,
-        centerTitle: true,
-        elevation: 0,
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: const CustomAppBar(
+        title: 'EMF Sensor Logger',
+        leadingIcon: Icons.sensors,
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // 🔥🔥🔥 GIANT GOOGLE FIT SECTION 🔥🔥🔥
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.red.shade500, Colors.pink.shade400],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Google Fit Card
+              GoogleFitCard(
+                isConnected: _isGoogleFitConnected,
+                onConnect: _connectGoogleFit,
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Status Card
+              StatusCard(
+                isRecording: _isRecording,
+                currentSessionId: _currentSessionId,
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Sensor Data Card (only show if we have data)
+              if (_latestPosition != null || _latestMagnet != null) ...[
+                SensorDataCard(
+                  latestPosition: _latestPosition,
+                  latestMagnet: _latestMagnet,
+                  samples: _samples,
+                  locationSamples: _locationSamples,
                 ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: Colors.red.withOpacity(0.3), blurRadius: 12, offset: Offset(0, 6))],
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.favorite, color: Colors.white, size: 40),
-                      SizedBox(width: 16),
-                      Text('GOOGLE FIT\nHEART RATE', textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, height: 1.2)),
-                    ],
-                  ),
-                  SizedBox(height: 24),
-                  
-                  // MASSIVE CONNECT BUTTON
-                  SizedBox(
-                    width: double.infinity,
-                    height: 70,
-                    child: ElevatedButton(
-                      onPressed: _connectGoogleFit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isGoogleFitConnected ? Colors.green : Colors.white,
-                        foregroundColor: _isGoogleFitConnected ? Colors.white : Colors.red.shade700,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        elevation: 8,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(_isGoogleFitConnected ? Icons.check_circle : Icons.link, size: 36),
-                          SizedBox(width: 16),
-                          Text(_isGoogleFitConnected ? 'CONNECTED ✅' : 'CONNECT NOW 🔗',
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
-                        ],
-                      ),
-                    ),
-                  ),
-                  
-                  SizedBox(height: 16),
-                  
-                  // TEST BUTTON
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        if (_currentSessionId != null) {
-                          final testTime = _startTime != null 
-                            ? DateTime.now().difference(_startTime!).inMilliseconds / 1000.0 : 0.0;
-                          await _fetchAndStoreHeartRate(testTime);
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orange.shade600,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.favorite_border, size: 28),
-                          SizedBox(width: 12),
-                          Text('TEST HEART RATE 🧪', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            SizedBox(height: 20),
-            
-            // Status
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: _isRecording ? Colors.green.shade100 : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: _isRecording ? Colors.green.shade300 : Colors.grey.shade300,
-                  width: 2,
-                ),
-              ),
-              child: Text(
-                _isRecording ? '🔴 RECORDING ACTIVE' : '⚪ Ready to Start',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: _isRecording ? Colors.green.shade800 : Colors.grey.shade700,
-                ),
-              ),
-            ),
-            
-            SizedBox(height: 20),
-            
-            // Sensor display
-            if (_latestPosition != null || _latestMagnet != null)
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8)),
-                child: Column(
-                  children: [
-                    if (_latestPosition != null)
-                      Text('📍 ${_latestPosition!.latitude.toStringAsFixed(4)}, ${_latestPosition!.longitude.toStringAsFixed(4)}'),
-                    if (_latestMagnet != null)
-                      Text('⚡ EMF: ${sqrt(_latestMagnet!.x*_latestMagnet!.x + _latestMagnet!.y*_latestMagnet!.y + _latestMagnet!.z*_latestMagnet!.z).toStringAsFixed(1)} μT'),
-                  ],
-                ),
-              ),
-            
-            SizedBox(height: 20),
-            
-            // RECORDING BUTTON
-            SizedBox(
-              width: double.infinity,
-              height: 60,
-              child: ElevatedButton.icon(
+                const SizedBox(height: 24),
+              ],
+              
+              // Recording Button
+              RecordingButton(
+                isRecording: _isRecording,
                 onPressed: _isRecording ? _stopRecording : _startRecording,
-                icon: Icon(_isRecording ? Icons.stop : Icons.play_arrow, size: 28),
-                label: Text(_isRecording ? 'STOP RECORDING' : 'START RECORDING',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _isRecording ? Colors.red : Colors.green,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
               ),
-            ),
-            
-            SizedBox(height: 16),
-            
-            if (_isRecording)
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.blue.shade50, Colors.blue.shade100],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.shade200, width: 2),
+              
+              const SizedBox(height: 24),
+              
+              // Recording Stats (only show while recording)
+              if (_isRecording)
+                RecordingStatsCard(
+                  samples: _samples,
+                  locationSamples: _locationSamples,
+                  isGoogleFitConnected: _isGoogleFitConnected,
+                  recordingDuration: _recordingDuration,
                 ),
-                child: Column(
-                  children: [
-                    Icon(Icons.sensors, size: 40, color: Colors.blue.shade600),
-                    SizedBox(height: 12),
-                    Text(
-                      'RECORDING IN PROGRESS',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.blue.shade800,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      '$_samples EMF samples collected\n💓 Heart rate syncing with Google Fit',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.blue.shade600,
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
