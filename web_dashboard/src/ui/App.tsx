@@ -40,6 +40,12 @@ interface WeatherPoint {
   cond?: string
 }
 
+interface HeartRatePoint {
+  seconds: number
+  bpm: number
+  timestamp: string
+}
+
 export const App: React.FC = () => {
   const mapRef = useRef<any>(null)
   const mapDivRef = useRef<HTMLDivElement | null>(null)
@@ -48,6 +54,7 @@ export const App: React.FC = () => {
   const [locationPoints, setLocationPoints] = useState<LocationPoint[]>([])
   const [magnetometerPoints, setMagnetometerPoints] = useState<MagnetometerPoint[]>([])
   const [weatherPoints, setWeatherPoints] = useState<WeatherPoint[]>([])
+  const [heartRatePoints, setHeartRatePoints] = useState<HeartRatePoint[]>([])
   const [emfMappedCount, setEmfMappedCount] = useState<number>(0)
   const [route, setRoute] = useState<'live' | 'heatmap' | 'zones'>(() =>
     location.hash === '#/heatmap' ? 'heatmap' : location.hash === '#/zones' ? 'zones' : 'live'
@@ -133,6 +140,7 @@ export const App: React.FC = () => {
     setLocationPoints([])
     setMagnetometerPoints([])
     setWeatherPoints([])
+    setHeartRatePoints([])
 
     // Find the session's user ID
     const sessionsRef = ref(db, 'users')
@@ -161,6 +169,13 @@ export const App: React.FC = () => {
             onChildAdded(weatherRef, (snapshot) => {
               const point = snapshot.val()
               setWeatherPoints(prev => [...prev, point])
+            })
+
+            // Subscribe to heart rate data
+            const heartRateRef = ref(db, `users/${userId}/sessions/${selectedSession}/heartRateData`)
+            onChildAdded(heartRateRef, (snapshot) => {
+              const point = snapshot.val()
+              setHeartRatePoints(prev => [...prev, point])
             })
           }
         })
@@ -213,6 +228,26 @@ export const App: React.FC = () => {
       return best.dt <= maxTimeGapSec ? locationPoints[best.idx] : null
     }
 
+    // Function to find nearest heart rate reading for a given timestamp
+    const findNearestHeartRate = (targetTime: string) => {
+      if (heartRatePoints.length === 0) return null
+      
+      const targetTimestamp = new Date(targetTime).getTime()
+      let closest = heartRatePoints[0]
+      let minDiff = Math.abs(new Date(closest.timestamp).getTime() - targetTimestamp)
+      
+      for (const hr of heartRatePoints) {
+        const diff = Math.abs(new Date(hr.timestamp).getTime() - targetTimestamp)
+        if (diff < minDiff) {
+          minDiff = diff
+          closest = hr
+        }
+      }
+      
+      // Return if within 5 minutes (300000 ms)
+      return minDiff <= 300000 ? closest : null
+    }
+
     // Sample EMF readings to reduce overlap (show every Nth reading if too dense)
     const emfReadingsToShow = magnetometerPoints.length > 200 
       ? magnetometerPoints.filter((_, i) => i % Math.ceil(magnetometerPoints.length / 200) === 0)
@@ -262,6 +297,8 @@ export const App: React.FC = () => {
     // Add weather markers
     const weatherLayer = (window as any).L.layerGroup().addTo(map)
     weatherPoints.forEach((weatherPoint) => {
+      // Find corresponding heart rate data
+      const heartRate = findNearestHeartRate(weatherPoint.ts)
       const weatherIcon = (window as any).L.divIcon({
         html: `<div style="
           background: linear-gradient(135deg, #6366F1, #8B5CF6); 
@@ -335,6 +372,114 @@ export const App: React.FC = () => {
                 <span style="font-weight: 500; font-size: 14px;">10.00 km</span>
               </div>
             </div>
+            
+            ${heartRate ? `
+            <div style="
+              margin-top: 16px; 
+              padding-top: 12px; 
+              border-top: 1px solid rgba(255,255,255,0.1);
+            ">
+              <div style="
+                display: flex; 
+                align-items: center; 
+                gap: 8px; 
+                margin-bottom: 12px;
+              ">
+                <div style="font-size: 20px;">💓</div>
+                <div>
+                  <div style="font-weight: 600; font-size: 15px; color: #EF4444;">Heart Rate Monitor</div>
+                  <div style="font-size: 10px; color: #9CA3AF; margin-top: 1px;">Google Fit Integration</div>
+                </div>
+              </div>
+              
+              <div style="
+                background: rgba(239, 68, 68, 0.1); 
+                border: 1px solid rgba(239, 68, 68, 0.2);
+                border-radius: 8px; 
+                padding: 12px; 
+                margin-bottom: 8px;
+              ">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <span style="color: #9CA3AF; font-size: 13px; font-weight: 500;">Current BPM</span>
+                  <span style="
+                    font-weight: 700; 
+                    font-size: 24px; 
+                    color: #EF4444;
+                    text-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+                  ">${heartRate.bpm}</span>
+                </div>
+                <div style="
+                  margin-top: 8px;
+                  font-size: 10px; 
+                  color: #9CA3AF;
+                  display: flex;
+                  justify-content: space-between;
+                ">
+                  <span>📊 ${heartRate.bpm < 60 ? 'Resting' : heartRate.bpm < 100 ? 'Normal' : heartRate.bpm < 150 ? 'Elevated' : 'High'}</span>
+                  <span>⏱️ ${new Date(heartRate.timestamp).toLocaleTimeString()}</span>
+                </div>
+              </div>
+              
+              <div style="
+                display: grid; 
+                grid-template-columns: 1fr 1fr; 
+                gap: 8px;
+                font-size: 11px;
+              ">
+                <div style="
+                  background: rgba(16, 185, 129, 0.1);
+                  border: 1px solid rgba(16, 185, 129, 0.2);
+                  border-radius: 6px;
+                  padding: 8px;
+                  text-align: center;
+                ">
+                  <div style="color: #10B981; font-weight: 600;">${Math.floor(heartRate.seconds / 60)}:${String(Math.floor(heartRate.seconds % 60)).padStart(2, '0')}</div>
+                  <div style="color: #9CA3AF; font-size: 10px;">Session Time</div>
+                </div>
+                <div style="
+                  background: rgba(99, 102, 241, 0.1);
+                  border: 1px solid rgba(99, 102, 241, 0.2);
+                  border-radius: 6px;
+                  padding: 8px;
+                  text-align: center;
+                ">
+                  <div style="color: #6366F1; font-weight: 600;">🔗 SYNC</div>
+                  <div style="color: #9CA3AF; font-size: 10px;">Google Fit</div>
+                </div>
+              </div>
+            </div>
+            ` : `
+            <div style="
+              margin-top: 16px; 
+              padding-top: 12px; 
+              border-top: 1px solid rgba(255,255,255,0.1);
+            ">
+              <div style="
+                display: flex; 
+                align-items: center; 
+                gap: 8px; 
+                margin-bottom: 8px;
+              ">
+                <div style="font-size: 20px; opacity: 0.5;">💓</div>
+                <div>
+                  <div style="font-weight: 600; font-size: 15px; color: #9CA3AF;">Heart Rate Monitor</div>
+                  <div style="font-size: 10px; color: #6B7280; margin-top: 1px;">No data available</div>
+                </div>
+              </div>
+              
+              <div style="
+                background: rgba(107, 114, 128, 0.1); 
+                border: 1px solid rgba(107, 114, 128, 0.2);
+                border-radius: 8px; 
+                padding: 12px; 
+                text-align: center;
+              ">
+                <div style="font-size: 12px; color: #9CA3AF;">
+                  No heart rate data recorded for this location
+                </div>
+              </div>
+            </div>
+            `}
           </div>
         `, {
           maxWidth: 280,
@@ -755,6 +900,13 @@ export const App: React.FC = () => {
           50% { opacity: 0.5; }
         }
         
+        @keyframes heartbeat {
+          0%, 100% { transform: scale(1); }
+          25% { transform: scale(1.1); }
+          50% { transform: scale(1); }
+          75% { transform: scale(1.05); }
+        }
+        
         .metric-card {
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.1);
@@ -940,6 +1092,39 @@ export const App: React.FC = () => {
               <div className="metric-icon">📍</div>
               <div className="metric-value">{locationPoints.length.toLocaleString()}</div>
               <div className="metric-label">Location Points</div>
+            </div>
+            
+            <div className="metric-card" style={{
+              background: heartRatePoints.length > 0 
+                ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1))'
+                : 'rgba(255, 255, 255, 0.05)',
+              border: heartRatePoints.length > 0
+                ? '1px solid rgba(239, 68, 68, 0.3)'
+                : '1px solid rgba(255, 255, 255, 0.1)',
+              marginBottom: '12px'
+            }}>
+              <div className="metric-icon" style={{
+                fontSize: '28px',
+                marginBottom: '8px',
+                animation: heartRatePoints.length > 0 ? 'heartbeat 2s infinite' : 'none'
+              }}>💓</div>
+              <div className="metric-value" style={{
+                color: heartRatePoints.length > 0 ? '#EF4444' : '#6366F1',
+                fontSize: '20px'
+              }}>
+                {heartRatePoints.length > 0 
+                  ? `${heartRatePoints[heartRatePoints.length - 1]?.bpm || '--'} BPM`
+                  : 'No Data'
+                }
+              </div>
+              <div className="metric-label" style={{
+                color: heartRatePoints.length > 0 ? '#EF4444' : '#9CA3AF'
+              }}>
+                {heartRatePoints.length > 0 
+                  ? `${heartRatePoints.length} readings • Live`
+                  : 'Heart Rate Monitor'
+                }
+              </div>
             </div>
           </div>
         </div>
