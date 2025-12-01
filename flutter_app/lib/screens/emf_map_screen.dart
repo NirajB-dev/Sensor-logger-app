@@ -6,6 +6,28 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math' as math;
 import '../widgets/custom_app_bar.dart';
 
+// EMF Cluster for spatial aggregation
+class EMFCluster {
+  final String gridKey;
+  final LatLng centerPoint;
+  double totalMagnitude = 0;
+  int readingCount = 0;
+  double maxMagnitude = 0;
+  
+  EMFCluster(this.gridKey, this.centerPoint);
+  
+  void addReading(double magnitude) {
+    totalMagnitude += magnitude;
+    readingCount++;
+    maxMagnitude = math.max(maxMagnitude, magnitude);
+  }
+  
+  double get averageMagnitude => readingCount > 0 ? totalMagnitude / readingCount : 0;
+  
+  // Use max magnitude for risk assessment, but consider density too
+  double get riskScore => maxMagnitude * math.log(readingCount + 1) / 2;
+}
+
 class EMFMapScreen extends StatefulWidget {
   const EMFMapScreen({Key? key}) : super(key: key);
 
@@ -54,6 +76,7 @@ class _EMFMapScreenState extends State<EMFMapScreen> {
         List<LatLng> allRoutePoints = [];
         List<CircleMarker> allEmfZones = [];
         List<Marker> allWeatherMarkers = [];
+        Map<String, EMFCluster> emfClusters = {}; // Grid-based clustering
         int sessionCount = 0;
         int dataPointCount = 0;
         int userCount = 0;
@@ -79,8 +102,11 @@ class _EMFMapScreenState extends State<EMFMapScreen> {
             final sortedLocations = locations.values.toList()
               ..sort((a, b) => (a['seconds'] ?? 0).compareTo(b['seconds'] ?? 0));
             
-            // Include ALL location points for complete route detail
-            for (int i = 0; i < sortedLocations.length; i++) {
+            // Sample route points based on zoom level and total points
+            final sampleRate = sortedLocations.length > 500 ? 5 : 
+                              sortedLocations.length > 200 ? 3 : 2;
+            
+            for (int i = 0; i < sortedLocations.length; i += sampleRate) {
               final location = sortedLocations[i];
               if (location['latitude'] != null && location['longitude'] != null) {
                 allRoutePoints.add(LatLng(
@@ -102,8 +128,11 @@ class _EMFMapScreenState extends State<EMFMapScreen> {
             final sortedLocations = locationData.values.toList()
               ..sort((a, b) => (a['seconds'] ?? 0).compareTo(b['seconds'] ?? 0));
 
-            // Process ALL magnetometer points for complete data coverage
-            for (int i = 0; i < sortedMagnet.length; i++) {
+            // Smart sampling of magnetometer data based on data density
+            final magnetSampleRate = sortedMagnet.length > 1000 ? 4 : 
+                                   sortedMagnet.length > 500 ? 3 : 2;
+            
+            for (int i = 0; i < sortedMagnet.length; i += magnetSampleRate) {
               final magnetPoint = sortedMagnet[i];
               final magnetTime = magnetPoint['seconds']?.toDouble() ?? 0.0;
               dataPointCount++;
@@ -114,9 +143,9 @@ class _EMFMapScreenState extends State<EMFMapScreen> {
               final z = magnetPoint['z']?.toDouble() ?? 0.0;
               final magnitude = math.sqrt(x * x + y * y + z * z);
               
-              // Process ALL EMF readings for complete data visualization
-              if (magnitude >= 20) { // Show even low readings for complete picture
-                // Find nearest location point (within 5 seconds)
+              // Process significant EMF readings and cluster them
+              if (magnitude >= 25) { // Only process meaningful readings
+                // Find nearest location point (within 3 seconds for better accuracy)
                 dynamic nearestLocation;
                 double minTimeDiff = double.infinity;
                 
@@ -124,7 +153,7 @@ class _EMFMapScreenState extends State<EMFMapScreen> {
                   final locationTime = locationPoint['seconds']?.toDouble() ?? 0.0;
                   final timeDiff = (magnetTime - locationTime).abs();
                   
-                  if (timeDiff < minTimeDiff && timeDiff <= 5.0) {
+                  if (timeDiff < minTimeDiff && timeDiff <= 3.0) {
                     minTimeDiff = timeDiff;
                     nearestLocation = locationPoint;
                   }
@@ -135,13 +164,15 @@ class _EMFMapScreenState extends State<EMFMapScreen> {
                   final lon = nearestLocation['longitude']?.toDouble();
                   
                   if (lat != null && lon != null) {
-                    allEmfZones.add(CircleMarker(
-                      point: LatLng(lat, lon),
-                      radius: _getCircleRadius(magnitude),
-                      color: _getEMFColor(magnitude).withOpacity(_emfOpacity),
-                      borderColor: _getEMFColor(magnitude),
-                      borderStrokeWidth: magnitude >= 70 ? 2 : 1,
-                    ));
+                    // Create grid-based clustering (approximately 100m grid cells)
+                    final gridLat = (lat * 1000).round() / 1000; // ~111m resolution
+                    final gridLon = (lon * 1500).round() / 1500; // ~74m resolution at Dublin latitude
+                    final gridKey = '${gridLat}_${gridLon}';
+                    
+                    if (!emfClusters.containsKey(gridKey)) {
+                      emfClusters[gridKey] = EMFCluster(gridKey, LatLng(gridLat, gridLon));
+                    }
+                    emfClusters[gridKey]!.addReading(magnitude);
                   }
                 }
               }
@@ -191,6 +222,20 @@ class _EMFMapScreenState extends State<EMFMapScreen> {
           } // End user sessions check
         } // End user loop
 
+        // Convert EMF clusters to optimized zone markers
+        for (final cluster in emfClusters.values) {
+          if (cluster.readingCount >= 2) { // Only show areas with multiple readings
+            final riskLevel = cluster.riskScore;
+            allEmfZones.add(CircleMarker(
+              point: cluster.centerPoint,
+              radius: _getClusterRadius(cluster.readingCount, riskLevel),
+              color: _getEMFColorFromRisk(riskLevel).withOpacity(_emfOpacity),
+              borderColor: _getEMFColorFromRisk(riskLevel),
+              borderStrokeWidth: riskLevel >= 60 ? 3 : riskLevel >= 45 ? 2 : 1,
+            ));
+          }
+        }
+
         setState(() {
           _routePoints = allRoutePoints;
           _emfZones = allEmfZones;
@@ -199,7 +244,7 @@ class _EMFMapScreenState extends State<EMFMapScreen> {
           _totalDataPoints = dataPointCount;
         });
         
-        print('✅ Loaded ALL available data from $userCount users, $sessionCount sessions, $dataPointCount data points (${allEmfZones.length} EMF zones, ${allRoutePoints.length} route points, ${allWeatherMarkers.length} weather markers)');
+        print('✅ Optimized clustering: $userCount users, $sessionCount sessions → ${allEmfZones.length} EMF zones (from ${emfClusters.length} clusters), ${allRoutePoints.length} route points, ${allWeatherMarkers.length} weather markers');
 
         // Center map on Dublin or first location if available
         if (allRoutePoints.isNotEmpty) {
@@ -250,6 +295,29 @@ class _EMFMapScreenState extends State<EMFMapScreen> {
     if (magnitude < 45) return Colors.green; // Safe readings
     if (magnitude < 70) return Colors.orange; // Moderate risk
     return Colors.red; // High risk
+  }
+
+  // Optimized color function for clustered risk scores
+  Color _getEMFColorFromRisk(double riskScore) {
+    if (riskScore < 35) return Colors.green; // Safe zones
+    if (riskScore < 50) return Colors.yellow; // Low-moderate risk
+    if (riskScore < 75) return Colors.orange; // Moderate risk
+    return Colors.red; // High risk zones
+  }
+
+  // Dynamic radius based on cluster density and risk
+  double _getClusterRadius(int readingCount, double riskScore) {
+    const double baseRadius = 50.0; // Larger base for zone coverage
+    const double maxRadius = 150.0;
+    
+    // Scale by zoom for better visibility
+    double zoomFactor = (_currentZoom / 13.0).clamp(0.7, 1.8);
+    
+    // Combine density and risk for radius calculation
+    double densityFactor = math.log(readingCount) + 1;
+    double riskFactor = math.sqrt(riskScore / 50);
+    
+    return ((baseRadius * densityFactor * riskFactor) * zoomFactor).clamp(30, maxRadius);
   }
 
   void _showWeatherPopup(dynamic weather) {
@@ -497,7 +565,7 @@ class _EMFMapScreenState extends State<EMFMapScreen> {
                       ),
                     ),
                     Text(
-                      'Showing all EMF readings (20+ μT)',
+                      'Smart clustering: ${_emfZones.length} risk zones',
                       style: TextStyle(
                         fontSize: 10,
                         color: Colors.grey.shade600,
@@ -509,10 +577,10 @@ class _EMFMapScreenState extends State<EMFMapScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildCompactLegendItem(Colors.blue, 'Very Low', '20-30 μT'),
-                    _buildCompactLegendItem(Colors.green, 'Safe', '30-45 μT'),
-                    _buildCompactLegendItem(Colors.orange, 'Moderate', '45-70 μT'),
-                    _buildCompactLegendItem(Colors.red, 'High Risk', '> 70 μT'),
+                    _buildCompactLegendItem(Colors.green, 'Safe Zone', 'Low Risk'),
+                    _buildCompactLegendItem(Colors.yellow, 'Caution', 'Moderate'),
+                    _buildCompactLegendItem(Colors.orange, 'Warning', 'High Risk'),
+                    _buildCompactLegendItem(Colors.red, 'Danger', 'Very High'),
                     if (_showRoutes) _buildCompactLegendItem(const Color(0xFF6366F1), 'Routes', 'Paths'),
                     if (_showWeather) _buildCompactLegendItem(Colors.blue, 'Weather', 'Data'),
                   ],
