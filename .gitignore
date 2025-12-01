@@ -36,4 +36,5 @@ yarn-error.log*
 
 # Documentation (Markdown files - except README)
 *.md
+!Readme.md
 !README.md
