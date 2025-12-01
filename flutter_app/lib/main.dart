@@ -16,6 +16,10 @@ import 'widgets/status_card.dart';
 import 'widgets/sensor_data_card.dart';
 import 'widgets/recording_button.dart';
 import 'widgets/recording_stats_card.dart';
+import 'widgets/map_access_card.dart';
+import 'widgets/emf_reader_card.dart';
+import 'screens/emf_map_screen.dart';
+import 'screens/emf_reader_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -399,9 +403,22 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      appBar: const CustomAppBar(
+      appBar: CustomAppBar(
         title: 'EMF Sensor Logger',
         leadingIcon: Icons.sensors,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.map),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const EMFMapScreen(),
+                ),
+              );
+            },
+            tooltip: 'View Safety Map',
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -413,6 +430,19 @@ class _MyHomePageState extends State<MyHomePage> {
               GoogleFitCard(
                 isConnected: _isGoogleFitConnected,
                 onConnect: _connectGoogleFit,
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Map Access Card
+              MapAccessCard(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const EMFMapScreen(),
+                    ),
+                  );
+                },
               ),
               
               const SizedBox(height: 24),
@@ -452,6 +482,20 @@ class _MyHomePageState extends State<MyHomePage> {
                   isGoogleFitConnected: _isGoogleFitConnected,
                   recordingDuration: _recordingDuration,
                 ),
+              
+              const SizedBox(height: 24),
+              
+              // EMF Reader Card (at bottom for fun features)
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const EMFReaderScreen(),
+                    ),
+                  );
+                },
+                child: const EMFReaderCard(),
+              ),
             ],
           ),
         ),

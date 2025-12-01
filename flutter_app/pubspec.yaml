@@ -48,6 +48,8 @@ dependencies:
   http: ^1.2.2
   google_sign_in: ^6.2.1 # For Google Fit authentication
   url_launcher: ^6.2.5 # For OAuth flow
+  flutter_map: ^7.0.2 # For map display
+  latlong2: ^0.9.1 # For coordinate handling
 
 dev_dependencies:
   flutter_test:
