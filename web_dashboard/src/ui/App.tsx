@@ -312,7 +312,7 @@ export const App: React.FC = () => {
           font-size: 16px; 
           border: 2px solid white; 
           box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        ">🌤️</div>`,
+        "><img src="/icons/cloudy.png" alt="Weather" style="width: 18px; height: 18px;" /></div>`,
         className: 'weather-marker',
         iconSize: [32, 32],
         iconAnchor: [16, 16]
@@ -337,7 +337,7 @@ export const App: React.FC = () => {
               padding-bottom: 12px; 
               border-bottom: 1px solid rgba(255,255,255,0.1);
             ">
-              <div style="font-size: 24px;">🌤️</div>
+              <img src="/icons/cloudy.png" alt="Weather" style="width: 28px; height: 28px;" />
               <div>
                 <div style="font-weight: 600; font-size: 16px;">Weather Data</div>
                 <div style="font-size: 11px; color: #9CA3AF; margin-top: 2px;">
@@ -385,7 +385,7 @@ export const App: React.FC = () => {
                 gap: 8px; 
                 margin-bottom: 12px;
               ">
-                <div style="font-size: 20px;">💓</div>
+                <img src="/icons/heartbeat.png" alt="Heartbeat" style="width: 20px; height: 20px;" />
                 <div>
                   <div style="font-weight: 600; font-size: 15px; color: #EF4444;">Heart Rate Monitor</div>
                   <div style="font-size: 10px; color: #9CA3AF; margin-top: 1px;">Google Fit Integration</div>
@@ -415,7 +415,7 @@ export const App: React.FC = () => {
                   display: flex;
                   justify-content: space-between;
                 ">
-                  <span>📊 ${heartRate.bpm < 60 ? 'Resting' : heartRate.bpm < 100 ? 'Normal' : heartRate.bpm < 150 ? 'Elevated' : 'High'}</span>
+                  <span><img src="/icons/bar-graph.png" alt="Status" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;" />${heartRate.bpm < 60 ? 'Resting' : heartRate.bpm < 100 ? 'Normal' : heartRate.bpm < 150 ? 'Elevated' : 'High'}</span>
                   <span>⏱️ ${new Date(heartRate.timestamp).toLocaleTimeString()}</span>
                 </div>
               </div>
@@ -460,7 +460,7 @@ export const App: React.FC = () => {
                 gap: 8px; 
                 margin-bottom: 8px;
               ">
-                <div style="font-size: 20px; opacity: 0.5;">💓</div>
+                <img src="/icons/heartbeat.png" alt="Heartbeat" style="width: 20px; height: 20px; opacity: 0.5;" />
                 <div>
                   <div style="font-weight: 600; font-size: 15px; color: #9CA3AF;">Heart Rate Monitor</div>
                   <div style="font-size: 10px; color: #6B7280; margin-top: 1px;">No data available</div>
@@ -1011,22 +1011,28 @@ export const App: React.FC = () => {
               className={`filter-item ${route === 'live' ? 'active' : ''}`}
               onClick={() => window.location.hash = '#/live'}
             >
-              <div className="filter-icon">📊</div>
+              <div className="filter-icon">
+                <img src="/icons/bar-graph.png" alt="Bar Graph" style={{ width: '20px', height: '20px' }} />
+              </div>
               <span>Lux Measurements</span>
             </div>
             <div 
               className={`filter-item ${route === 'heatmap' ? 'active' : ''}`}
               onClick={() => window.location.hash = '#/heatmap'}
             >
-              <div className="filter-icon">🔥</div>
+              <div className="filter-icon">
+                <img src="/icons/heatmap.png" alt="Heatmap" style={{ width: '20px', height: '20px' }} />
+              </div>
               <span>Heatmap (All Sensors)</span>
             </div>
             <div 
               className={`filter-item ${route === 'zones' ? 'active' : ''}`}
               onClick={() => window.location.hash = '#/zones'}
             >
-              <div className="filter-icon">🟪</div>
-              <span>Zones (All Sessions)</span>
+              <div className="filter-icon">
+                <img src="/icons/territory.png" alt="Territory" style={{ width: '20px', height: '20px' }} />
+              </div>
+              <span>Territory (All Sessions)</span>
             </div>
           </div>
           
@@ -1107,7 +1113,9 @@ export const App: React.FC = () => {
                 fontSize: '28px',
                 marginBottom: '8px',
                 animation: heartRatePoints.length > 0 ? 'heartbeat 2s infinite' : 'none'
-              }}>💓</div>
+              }}>
+                <img src="/icons/heartbeat.png" alt="Heartbeat" style={{ width: '32px', height: '32px' }} />
+              </div>
               <div className="metric-value" style={{
                 color: heartRatePoints.length > 0 ? '#EF4444' : '#6366F1',
                 fontSize: '20px'
